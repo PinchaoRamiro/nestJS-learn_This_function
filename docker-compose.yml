@@ -1,20 +1,36 @@
-version: '3.1'
+version: "3.9"
 
 services:
-  codrr_pg:
-    image: postgres:15.1
-    container_name: codrr_pg
-    restart: always
+  postgres:
+    image: postgres:13
     environment:
-      POSTGRES_DB: codrrdb
-      POSTGRES_USER: ucodrr
-      POSTGRES_PASSWORD: secret1234
-    volumes:
-      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: test
     ports:
-      - 5432:5432
-  node:
-    image: node:18
-    container_name: node
-    restart: always
-    
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  nestjs-app:
+    build: .
+    ports:
+      - '3000:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: test
+      NODE_ENV: development
+
+volumes:
+  pgdata:
